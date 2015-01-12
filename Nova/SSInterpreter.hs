@@ -140,7 +140,7 @@ environment =
           $ insert "/"              (Native numericDiv)
           $ insert "car"            (Native car)           
           $ insert "cdr"            (Native cdr)   
-    		  $ insert "it?"			      (Native predIt)
+    		  $ insert "lt?"			      (Native predIt)
           $ insert "eq?"            (Native predEq)
             empty
 

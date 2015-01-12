@@ -217,10 +217,8 @@ predList (a:[]) = Bool False
 predList ls = Error "wrong number of arguments."
 
 predIt :: [LispVal] -> LispVal
-predIt [] = Error "wrong number of arguments"
-predIt [l] = Error "wrong number of arguments"
 predIt (Number l:Number ls:[]) = Bool (l == ls)
-predIt l = Error "wrong number of arguments"
+predIt _ = Error "wrong number of arguments"
 
 predEq :: [LispVal] -> LispVal
 predEq lista@ (Bool _ : as: []) = eqExec lista

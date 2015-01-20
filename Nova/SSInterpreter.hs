@@ -140,7 +140,8 @@ environment =
           $ insert "/"              (Native numericDiv)
           $ insert "car"            (Native car)           
           $ insert "cdr"            (Native cdr)   
-    		  $ insert "lt?"			      (Native predIt)
+          $ insert "lt?"			(Native predIt)
+		  $ insert "mod"            (Native numericMod)
           $ insert "eq?"            (Native predEq)
             empty
 
@@ -229,6 +230,10 @@ predEq lista@ (Atom _ : as: []) = eqExec lista
 predEq lista@ (as: [List _]) = eqExec lista
 predEq lista@ (as: [DottedList [list] b]) = eqExec lista
 predEq lista@ (a:as) = eqExec lista
+
+numericMod :: [LispVal] -> LispVal
+numericMod ((Number n1):(Number n2):[]) = Number (n1 `mod` n2)
+numericMod _ = Error "wrong number of arguments"
 
 
 eqExec (x:xs) = equal (x:xs)

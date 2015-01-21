@@ -49,7 +49,8 @@ eval env (List (Atom "begin":[v])) = eval env v
 eval env (List (Atom "begin": l: ls)) = (eval env l) >>= (\v -> case v of { (error@(Error _)) -> return error; otherwise -> eval env (List (Atom "begin": ls))})
 eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
-eval env clo@(List (Atom "make-closure":(List (Atom "lambda":(List formals):body:[])))) = return (List (Atom "lambda":(List formals ++ evalBack env):body:[]))
+eval env clo@(List (Atom "make-closure":(Atom "lambda":(List formals):body:[]))) = return (List (Atom "make-closure":(Atom "lambda":(List (formals ++ evalBack env)):body:[])))
+
 -- fazer lookup "let" em env, buscar var em formals; usar >>=
 -- evalBack env "let" >>= (\v -> case v of { (error@(Error _)) -> return clo; otherwise -> eval env (List (Atom "lambda":(List formals):body:[]))})
 
@@ -82,12 +83,11 @@ stateLookup env var = ST $
 -- evalBack :: StateT -> String -> LispVal
 evalBack env = 
             case (Map.lookup "let" env) of
-                Just (List elements) -> elements
+                Just (List elements) -> elements ++ (evalBack (newEnv env 0))
                 otherwise -> []
 
--- >>= (\resp -> case resp of { (error@(Error _)) -> return error; othewise -> return elements})
 -- newEnv :: StateT -> Int -> StateT
-newEnv env index = if ("let" == fst (Map.elemAt env index)) then (Map.deleteAt index env)
+newEnv env index = if ("let" == fst (Map.elemAt index env)) then (Map.deleteAt index env)
                    else newEnv (Map.deleteAt index env) (index+1)
 
 applySet :: StateT -> [LispVal] -> StateTransformer LispVal

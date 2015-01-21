@@ -1,0 +1,8 @@
+make-closure: recebe como argumento um lambda devolve uma clausura léxica (objeto
+com estado - variaveis) que captura as variaveis locais e variaveis locais externas ao
+escopo.
+
+
+
+- funcao para capturar variaveis locais externas
+- funcao para capturar variaveis locais internas do lambda

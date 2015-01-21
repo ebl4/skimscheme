@@ -49,7 +49,7 @@ eval env (List (Atom "begin":[v])) = eval env v
 eval env (List (Atom "begin": l: ls)) = (eval env l) >>= (\v -> case v of { (error@(Error _)) -> return error; otherwise -> eval env (List (Atom "begin": ls))})
 eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
-eval env clo@(List (Atom "make-closure":(List (Atom "lambda":(List formals):body:[])))) = evalBack env >> 
+eval env clo@(List (Atom "make-closure":(List (Atom "lambda":(List formals):body:[])))) = return (List (Atom "lambda":(List formals ++ evalBack env):body:[]))
 -- fazer lookup "let" em env, buscar var em formals; usar >>=
 -- evalBack env "let" >>= (\v -> case v of { (error@(Error _)) -> return clo; otherwise -> eval env (List (Atom "lambda":(List formals):body:[]))})
 
@@ -79,21 +79,16 @@ stateLookup env var = ST $
     ), s))
 
 -- recebe o estado do ambiente, a string let e retorna uma monad com as variaveis locais do let capturadas >>= (errada)
-evalBack :: StateT -> String -> LispVal
+-- evalBack :: StateT -> String -> LispVal
 evalBack env = 
-			   case (Map.lookup "let" (env)) of
-			     Just (List elements) -> elements
-           othewise -> []
-           -->>= (\resp -> case resp of { (error@(Error _)) -> return error; othewise -> return elements})
+            case (Map.lookup "let" env) of
+                Just (List elements) -> elements
+                otherwise -> []
 
-
--- funcao que recebe um a e retorna um ST a (risco)
-stateLisp :: a -> StateT -> StateTransformer a
-stateLisp ((List elto), val) env = 
-  ST (\s -> let (ST f)    = eval env val
-                (result, newState) = f s              
-             in (result, newState)
-    )
+-- >>= (\resp -> case resp of { (error@(Error _)) -> return error; othewise -> return elements})
+-- newEnv :: StateT -> Int -> StateT
+newEnv env index = if ("let" == fst (Map.elemAt env index)) then (Map.deleteAt index env)
+                   else newEnv (Map.deleteAt index env) (index+1)
 
 applySet :: StateT -> [LispVal] -> StateTransformer LispVal
 applySet env [(Atom id), val] = 
@@ -236,7 +231,7 @@ fibo n = n*(fibo (n-1))
 
 cons :: [LispVal] -> LispVal
 cons [a, List []] = List [a]
-cons [a, List as] = List $ a ++ as
+cons [a, List as] = List $ [a] ++ as
 cons [a, DottedList b bs] = DottedList ([a] ++ b) bs
 cons [a, b] = DottedList [a] b
 

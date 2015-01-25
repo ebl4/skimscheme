@@ -50,7 +50,7 @@ eval env (List (Atom "begin": l1: ls)) = (eval env l1) >>= (\v -> case v of { (e
 eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
 eval env clo@(List (Atom "make-closure":(Atom "lambda":(List formals):body:[]))) = eval env (List (Atom "lambda":(List formals):body:[]))
-eval env (List(Atom "comment":comments)) = return (Atom "")
+eval env (List(Atom "comment":comments)) = return (List [])
 
 -- fazer lookup "let" em env, buscar var em formals; usar >>=
 -- evalBack env "let" >>= (\v -> case v of { (error@(Error _)) -> return clo; otherwise -> eval env (List (Atom "lambda":(List formals):body:[]))})

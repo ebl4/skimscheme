@@ -294,12 +294,15 @@ equal l = Error "wrong number of arguments"
 evalB :: (LispVal -> LispVal -> Bool) -> LispVal -> LispVal -> Bool
 evalB op l lx = op l lx
 
--- Defined such as operation div in haskell
+containsZero :: [Integer] -> Bool
+containsZero [] = False
+containsZero (x:xs) | (x == 0) = True
+                    | otherwise = containsZero xs
+
+-- Division is left-associative
 numericDiv :: [LispVal] -> LispVal
-numericDiv [] = Error "wrong number of arguments"
-numericDiv [l] = Error "wrong number of arguments"
-numericDiv (Number l:Number ls:[]) =  Number (div l ls)
-numericDiv l = Error "wrong number of arguments"
+numericDiv [] = Number 1
+numericDiv l = numericBinOpDiv div l
 
 numericSum :: [LispVal] -> LispVal
 numericSum [] = Number 0
@@ -328,6 +331,13 @@ numericBinOp :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
 numericBinOp op args = if onlyNumbers args 
                        then Number $ foldl1 op $ Prelude.map unpackNum args 
                        else Error "not a number."
+
+numericBinOpDiv :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
+numericBinOpDiv op args = if onlyNumbers args 
+                          then let numbers = Prelude.map unpackNum args
+                               in if containsZero $ tail numbers then Error "cannot divide by zero."
+                                  else Number $ foldl1 op numbers
+                          else Error "not a number."
                        
 onlyNumbers :: [LispVal] -> Bool
 onlyNumbers [] = True

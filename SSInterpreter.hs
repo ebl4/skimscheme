@@ -234,8 +234,8 @@ fibo n = n*(fibo (n-1))
 
 cons :: [LispVal] -> LispVal
 cons [a, List []] = List [a]
-cons [a, List as] = List $ [a] ++ as
-cons [a, DottedList b bs] = DottedList ([a] ++ b) bs
+cons [a, List as] = List $ a:as
+cons [a, DottedList b bs] = DottedList (a:b) bs
 cons [a, b] = DottedList [a] b
 
 car :: [LispVal] -> LispVal

@@ -49,8 +49,7 @@ eval env (List (Atom "begin":[v])) = eval env v
 eval env (List (Atom "begin": l1: ls)) = (eval env l1) >>= (\v -> case v of { (error@(Error _)) -> return error; otherwise -> eval env (List (Atom "begin": ls))})
 eval env (List (Atom "begin":[])) = return (List [])
 eval env lam@(List (Atom "lambda":(List formals):body:[])) = return lam
-eval env clo@(List (Atom "make-closure":(Atom "lambda":(List formals):body:[]))) = eval env (List (Atom "lambda":(List formals):body:[]))
-eval env (List(Atom "comment":comments)) = return (List [])
+--eval env clo@(List (Atom "make-closure":(Atom "lambda":(List formals):body:[]))) = return 
 
 -- fazer lookup "let" em env, buscar var em formals; usar >>=
 -- evalBack env "let" >>= (\v -> case v of { (error@(Error _)) -> return clo; otherwise -> eval env (List (Atom "lambda":(List formals):body:[]))})
@@ -72,6 +71,8 @@ eval env (List (Atom func : args)) = mapM (eval env) args >>= apply env func
 -- apply :: StateT -> String -> [LispVal] -> StateTransformer LispVal
 eval env (Error s)  = return (Error s)
 eval env form = return (Error ("Could not eval the special form: " ++ (show form)))
+
+-- lamBodyWithEnv :: 
 
 stateLookup :: StateT -> String -> StateTransformer LispVal
 stateLookup env var = ST $ 
@@ -337,6 +338,14 @@ unpackNum (Number n) = n
 --                     main FUNCTION                     --
 -----------------------------------------------------------
 
+comandoValido :: LispVal -> Bool
+comandoValido (List ((Atom "comment"):xs)) = False
+comandoValido _ = True
+
+filtrarComentarios :: LispVal -> LispVal
+filtrarComentarios (List l) = (List (Prelude.map filtrarComentarios $ Prelude.filter comandoValido l))
+filtrarComentarios lv = lv
+
 showResult :: (LispVal, StateT) -> String
 showResult (val, defs) = show val ++ "\n" ++ show (toList defs) ++ "\n"
 
@@ -345,7 +354,7 @@ getResult (ST f) = f empty -- we start with an empty state.
 
 main :: IO ()
 main = do args <- getArgs
-          putStr $ showResult $ getResult $ eval environment $ readExpr $ concat $ args 
+          putStr $ showResult $ getResult $ eval environment $ filtrarComentarios $ readExpr $ concat $ args 
           
 
 

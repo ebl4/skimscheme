@@ -172,7 +172,7 @@ environment =
           $ insert "/"              (Native numericDiv)
           $ insert "car"            (Native car)           
           $ insert "cdr"            (Native cdr)   
-    		  $ insert "it?"			      (Native predIt)
+    		  $ insert "lt?"			      (Native predLt)
           $ insert "eq?"            (Native predEq)
           $ insert "fib"            (Native fib)
           $ insert "cons"           (Native cons)
@@ -263,11 +263,9 @@ predList (List _ : []) = Bool True
 predList (a:[]) = Bool False
 predList ls = Error "wrong number of arguments."
 
-predIt :: [LispVal] -> LispVal
-predIt [] = Error "wrong number of arguments"
-predIt [l] = Error "wrong number of arguments"
-predIt (Number l:Number ls:[]) = Bool (l == ls)
-predIt l = Error "wrong number of arguments"
+predLt :: [LispVal] -> LispVal
+predLt (Number l:Number ls:[]) = Bool (l == ls)
+predLt _ = Error "wrong number of arguments"
 
 predEq :: [LispVal] -> LispVal
 predEq lista@ (Bool _ : as: []) = eqExec lista

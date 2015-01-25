@@ -171,11 +171,12 @@ environment =
           $ insert "-"              (Native numericSub) 
           $ insert "/"              (Native numericDiv)
           $ insert "car"            (Native car)           
-          $ insert "cdr"            (Native cdr)   
-    		  $ insert "lt?"			      (Native predLt)
+          $ insert "cdr"            (Native cdr)
           $ insert "eq?"            (Native predEq)
           $ insert "fib"            (Native fib)
           $ insert "cons"           (Native cons)
+          $ insert "mod"            (Native numericMod)
+          $ insert "lt?"            (Native predLt)
             empty
 
 type StateT = Map String LispVal
@@ -263,8 +264,10 @@ predList (List _ : []) = Bool True
 predList (a:[]) = Bool False
 predList ls = Error "wrong number of arguments."
 
+-- We are considering that (<) and (mod) are not associative.
+
 predLt :: [LispVal] -> LispVal
-predLt (Number l:Number ls:[]) = Bool (l == ls)
+predLt (Number n1:Number n2:[]) = Bool (n1 < n2)
 predLt _ = Error "wrong number of arguments"
 
 predEq :: [LispVal] -> LispVal
@@ -313,6 +316,10 @@ numericSub [x] = if onlyNumbers [x]
                  then (\num -> (Number (- num))) (unpackNum x)
                  else Error "not a number."
 numericSub l = numericBinOp (-) l
+
+numericMod :: [LispVal] -> LispVal
+numericMod (Number a:Number b:[]) = if b == 0 then Error "cannot divide by zero."
+                                    else (Number (mod a b))
 
 -- We have not implemented division. Also, notice that we have not 
 -- addressed floating-point numbers.

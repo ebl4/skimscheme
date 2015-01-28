@@ -256,10 +256,11 @@ environment =
           $ insert "/"              (Native numericDiv)
           $ insert "car"            (Native car)           
           $ insert "cdr"            (Native cdr)   
-          $ insert "it?"            (Native predIt)
           $ insert "eq?"            (Native predEq)
           $ insert "fib"            (Native fib)
           $ insert "cons"           (Native cons)
+          $ insert "mod"            (Native numericMod)
+          $ insert "lt?"            (Native predLt)
             empty
 
 type StateT = Map String LispVal
@@ -322,8 +323,8 @@ fibo n = n*(fibo (n-1))
 
 cons :: [LispVal] -> LispVal
 cons [a, List []] = List [a]
-cons [a, List as] = List $ [a] ++ as
-cons [a, DottedList b bs] = DottedList ([a] ++ b) bs
+cons [a, List as] = List $ a:as
+cons [a, DottedList b bs] = DottedList (a:b) bs
 cons [a, b] = DottedList [a] b
 
 car :: [LispVal] -> LispVal
@@ -352,11 +353,11 @@ predList (List _ : []) = Bool True
 predList (a:[]) = Bool False
 predList ls = Error "wrong number of arguments."
 
-predIt :: [LispVal] -> LispVal
-predIt [] = Error "wrong number of arguments"
-predIt [l] = Error "wrong number of arguments"
-predIt (Number l:Number ls:[]) = Bool (l == ls)
-predIt l = Error "wrong number of arguments"
+-- We are considering that (<) and (mod) are not associative.
+
+predLt :: [LispVal] -> LispVal
+predLt (Number n1:Number n2:[]) = Bool (n1 < n2)
+predLt _ = Error "wrong number of arguments"
 
 predEq :: [LispVal] -> LispVal
 predEq lista@ (Bool _ : as: []) = eqExec lista
@@ -382,12 +383,15 @@ equal l = Error "wrong number of arguments"
 evalB :: (LispVal -> LispVal -> Bool) -> LispVal -> LispVal -> Bool
 evalB op l lx = op l lx
 
--- Defined such as operation div in haskell
+containsZero :: [Integer] -> Bool
+containsZero [] = False
+containsZero (x:xs) | (x == 0) = True
+                    | otherwise = containsZero xs
+
+-- Division is left-associative
 numericDiv :: [LispVal] -> LispVal
-numericDiv [] = Error "wrong number of arguments"
-numericDiv [l] = Error "wrong number of arguments"
-numericDiv (Number l:Number ls:[]) =  Number (div l ls)
-numericDiv l = Error "wrong number of arguments"
+numericDiv [] = Number 1
+numericDiv l = numericBinOpDiv div l
 
 numericSum :: [LispVal] -> LispVal
 numericSum [] = Number 0
@@ -405,6 +409,10 @@ numericSub [x] = if onlyNumbers [x]
                  else Error "not a number."
 numericSub l = numericBinOp (-) l
 
+numericMod :: [LispVal] -> LispVal
+numericMod (Number a:Number b:[]) = if b == 0 then Error "cannot divide by zero."
+                                    else (Number (mod a b))
+
 -- We have not implemented division. Also, notice that we have not 
 -- addressed floating-point numbers.
 
@@ -412,6 +420,13 @@ numericBinOp :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
 numericBinOp op args = if onlyNumbers args 
                        then Number $ foldl1 op $ Prelude.map unpackNum args 
                        else Error "not a number."
+
+numericBinOpDiv :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
+numericBinOpDiv op args = if onlyNumbers args 
+                          then let numbers = Prelude.map unpackNum args
+                               in if containsZero $ tail numbers then Error "cannot divide by zero."
+                                  else Number $ foldl1 op numbers
+                          else Error "not a number."
                        
 onlyNumbers :: [LispVal] -> Bool
 onlyNumbers [] = True

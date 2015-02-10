@@ -30,7 +30,7 @@
 (begin (let (i 0) (e 2)))
 
 
-(begin (define (fib n) (if (lt n 2) (n) ((+ (fib (- n 1)) (fib (- n 2)))))) (define x (fib 8)) x)
+"(begin (define fib (lambda (n) (if (lt? n 2) (1) (+ (fib (- n 1)) (fib (- n 2)))))) (define y (fib 2)) y)"
 
 
 "(begin (define fact (lambda (n) (if (eq? n 0) (1) (* n (fact (- n 1)))))) (define e (fact 8)) e)"

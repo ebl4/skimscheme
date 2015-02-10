@@ -30,7 +30,7 @@
 (begin (let (i 0) (e 2)))
 
 
-"(begin (define fib (lambda (n) (if (lt? n 2) (1) (+ (fib (- n 1)) (fib (- n 2)))))) (define y (fib 2)) y)"
+"(begin (define fib (lambda (n) (if (lt? n 2) (n) (+ (fib (- n 1)) (fib (- n 2)))))) (define y (fib 7)) y)"
 
 
 "(begin (define fact (lambda (n) (if (eq? n 0) (1) (* n (fact (- n 1)))))) (define e (fact 8)) e)"
@@ -73,3 +73,9 @@
                  (append (quicksort (car parts)) 
                          (quicksort (car (cdr parts)))))))
       )
+
+8 - 
+
+"(begin (define x 3) (define y 0) (let ((x 2) (e 4)) (begin (set! y (+ x 20)))) y)"
+"(begin (define x 3) (define y 0) (let ((x 2) (e 4)) (begin (set! x 8) (set! y (+ x 20)))) y)"
+

@@ -116,7 +116,7 @@ stateLookup :: StateT -> String -> StateTransformer LispVal
 stateLookup env var = ST $ 
   (\s e -> 
     (maybe (Error "variable does not exist.") 
-           id (Map.lookup var (union env (union s e)) 
+           id (Map.lookup var (union env (union e s)) 
     ), s, e))
 
 --removeCopies :: (Eq a) => [a] -> [a]
@@ -185,7 +185,7 @@ applySet env args = return (Error "wrong number of arguments")
 -- ligação direta, direct bind >> com a avaliacao do corpo do let
 
 applyLet env bind@(List [Atom id, val]:[]) body = (defineLet env id val) >> eval env body
-applyLet env bind@(List [Atom id, val]:xs) body = (defineLet env id val) >> eval env body
+applyLet env bind@(List [Atom id, val]:xs) body = (defineLet env id val) >> applyLet env xs body
 applyLet env list _ = ST (\s e -> (Error "not a let", s, e))
                 
 

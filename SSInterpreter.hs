@@ -43,13 +43,15 @@ eval :: StateT -> LispVal -> StateTransformer LispVal
 eval env val@(String _) = return val
 eval env val@(Atom var) = stateLookup env var 
 eval env val@(Number _) = return val
+eval env (List val@([Number _]))= return (val !! 0)
 eval env val@(Bool _) = return val
 eval env (List [Atom "quote", val]) = return val
-eval env (List [Atom "if", pred, conseq, alt]) = 
-        do result <- eval env pred
+eval env ifi@(List [Atom "if", (List predi), (List conseq), (List alt)]) = 
+        do result <- eval env (List predi)
            case result of
-               Bool False -> eval env alt
-               otherwise -> eval env conseq
+               error@(Error _) -> return error
+               Bool False -> eval env (List alt)
+               otherwise -> eval env (List conseq)
 eval env (List (Atom "begin":[v])) = eval env v
 eval env (List (Atom "begin": l: ls)) = (eval env l) >>= (\v -> case v of { (error@(Error _)) -> return error; otherwise -> eval env (List (Atom "begin": ls))})
 eval env (List (Atom "begin":[])) = return (List [])
@@ -74,32 +76,39 @@ eval env (List [Atom "let", List escope, body]) =
                 (res, newStateS, newStateE) = f s e              
                 listVars = [var | List [var, val] <- escope ]  
                 boolNotCopies = (length listVars) == (length (removeCopies listVars))
-            in if (not boolNotCopies) then (res, newStateS, e)
+            in if (boolNotCopies) then (res, newStateS, e)
                else (Error ("let tem copias de variaveis locais"), s, e)
       )
 
-
-eval env lis@(List [Atom "make-closure2", lambda]) = -- testei com lambda com o padrao (Atom escope, body) e deu erro; ebl4
+-- Tentativa 2 de fazer funcao make-closure
+{-eval env lis@(List [Atom "make-closure2", lambda]) = -- testei com lambda com o padrao (Atom escope, body) e deu erro; ebl4
   ST (\s e -> let
                 (ST f) = eval env lambda 
                 -- (ST f) = eval env escope body  
                 (res, newStateS, newStateE) = f s e              
                 -- listVars = [var | List [var, val] <- escope ]  
                 -- boolNotCopies = (length listVars) == (length (removeCopies listVars))
-            in (res, newStateS, newStateE) -- if (not boolNotCopies) then (res, newStateS, newStateE) -- neste caso, a make-closure devolve o ambiente local modificado de acordo com o que já tinha
+            in (res, newStateS, newStateE) -- if (not boolNotCopies) then (res, newStateS, newStateE) -- neste caso, a make-closure devolve o ambiente local modificado de acordo com o que já tinha              
                -- else (Error ("lambda tem copias de parametros"), s, e)
       )
-
+-}
 eval env (List (Atom "define": args)) = maybe (define env args) (\v -> return v) (Map.lookup "define" env)
 -- lookup :: Ord k => k -> Map k a -> Maybe a
 -- maybe :: b -> (a -> b) -> Maybe a -> b
 eval env (List (Atom "set!": args)) = applySet env args
+
+
+-- avaliacao para funcoes recursivas
+eval env (List (listF@(List _): args)) = eval env listF >>= (\v -> case v of {(Native f) -> return (f args); otherwise -> return (Error "not a recursive function")})
+
 --eval env (List (Atom "let": args))
 eval env (List (Atom func : args)) = mapM (eval env) args >>= apply env func  
+
 -- mapM (eval env) args :: StateTransformer [LispVal]
 -- apply env func :: [LispVal] -> StateTransformer LispVal
 -- mapM :: Monad m => (a -> m b) -> [a] -> m [b]
 -- apply :: StateT -> String -> [LispVal] -> StateTransformer LispVal
+
 eval env (Error s)  = return (Error s)
 eval env form = return (Error ("Could not eval the special form: " ++ (show form)))
 
@@ -118,13 +127,13 @@ removeCopies (x:xs) = x: removeCopies (Prelude.filter (\y -> (x /= y)) xs)
 
 
 --  recebe o ambiente env e um index e retorna uma lista de variaveis do env presentes no ambiente e
-evalBack env index = ST $ 
+{-evalBack env index = ST $ 
   (\s e -> 
     (List (envVar env e index)
-    , s, e))
+    , s, e))-}
+
 
 -- funcao que retorna variaveis do env presentes no ambiente e
-
 envVar env e index = 
   if (index < size env) then
       case (retornaVars env index) of 
@@ -153,10 +162,10 @@ retornaVars env index =
                     otherwise -> Atom [])
     else Atom []), s, e)-}
     
-
+{-
 -- newEnv :: StateT -> Int -> StateT
 newEnv env index = if ("let" == fst (Map.elemAt index env)) then (Map.deleteAt index env)
-                   else newEnv (Map.deleteAt index env) (index+1)
+                   else newEnv (Map.deleteAt index env) (index+1)-}
 
 applySet :: StateT -> [LispVal] -> StateTransformer LispVal
 applySet env [(Atom id), val] = 
@@ -164,8 +173,8 @@ applySet env [(Atom id), val] =
                 (ST f)    = eval env val
                 (result, newStateS, newStateE) = f s e
             in 
-        if (member id newStateS) then (result, (insert id result newStateS), newStateE)                            
-        else if (member id newStateE) then (result, newStateS, (insert id result newStateE))
+        if (member id newStateE) then (result, newStateS, (insert id result newStateE))                           
+        else if (member id newStateS) then (result, (insert id result newStateS), newStateE)         
         else (Error "variable does not exist.", newStateS, newStateE) 
               
     )
@@ -199,7 +208,7 @@ defineLet env id val =
 define :: StateT -> [LispVal] -> StateTransformer LispVal
 define env [(Atom id), val] = defineVar env id val
 define env [(List [Atom id]), val] = defineVar env id val
--- define env [(List l), val]                                       
+--define env [(Atom id), (List (Atom "make-closure"):val)] = 
 define env args = return (Error "wrong number of arguments")
 defineVar env id val = 
   ST (\s e -> let 
